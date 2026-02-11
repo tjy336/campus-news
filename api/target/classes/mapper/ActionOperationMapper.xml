@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kmbeast.mapper.ActionOperationMapper">
+
+    <select id="listPageCount" resultType="int">
+
+        SELECT COUNT(*)
+        FROM action_operation ao
+        <where>
+            <if test="id != null">
+                AND ao.id = #{id}
+            </if>
+            <if test="userId != null">
+                AND ao.user_id = #{userId}
+            </if>
+            <if test="newsId != null">
+                AND ao.news_id = #{newsId}
+            </if>
+            <if test="type != null">
+                AND ao.type = #{type}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="list" resultType="com.kmbeast.pojo.entity.ActionOperation">
+
+        SELECT id, user_id, news_id, type, times, create_time
+        FROM action_operation ao
+        <where>
+            <if test="id != null">
+                AND ao.id = #{id}
+            </if>
+            <if test="userId != null">
+                AND ao.user_id = #{userId}
+            </if>
+            <if test="newsId != null">
+                AND ao.news_id = #{newsId}
+            </if>
+            <if test="type != null">
+                AND ao.type = #{type}
+            </if>
+            <if test="startTime != null and endTime != null">
+                AND ao.create_time BETWEEN #{startTime} AND #{endTime}
+            </if>
+        </where>
+        <if test="current != null and size != null">
+            LIMIT #{current},#{size}
+        </if>
+
+    </select>
+
+
+    <select id="getScore" resultType="com.kmbeast.pojo.vo.ScoreVO">
+
+        SELECT user_id AS userId,
+               news_id AS contentId,
+               LEAST(5,
+                     (
+                         -- 基础互动评分（浏览、点赞、收藏）
+                         (total_views * 0.25 +
+                          total_upvotes * 0.35 +
+                          total_collects * 0.4) * 0.7 +
+
+                             -- 时长奖励分
+                         CASE
+                             WHEN total_duration
+                                 &lt;
+                                  6000 THEN 0
+                             WHEN total_duration
+                                 &lt;
+                                  20000 THEN 0.5
+                             WHEN total_duration
+                                 &lt;
+                                  60000 THEN 1.2
+                             ELSE 1.8
+                             END
+                         ) *
+                         -- 活跃度调节因子
+                     (1 + LOG(1 + (total_views + total_upvotes + total_collects) / 10))
+               )       AS score
+        FROM (SELECT user_id,
+                     news_id,
+                     SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END)     AS total_views,
+                     SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END)     AS total_upvotes,
+                     SUM(CASE WHEN type = 3 THEN 1 ELSE 0 END)     AS total_collects,
+                     SUM(CASE WHEN type = 4 THEN times ELSE 0 END) AS total_duration
+              FROM action_operation
+              WHERE type IN (1, 2, 3, 4) -- 点赞(1)、浏览(2)、收藏(3)、停留(4)
+              GROUP BY user_id, news_id
+              HAVING total_views > 0
+                  OR total_upvotes > 0
+                  OR total_collects > 0) AS aggregated_data
+        ORDER BY score DESC
+
+    </select>
+
+</mapper>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kmbeast.mapper.NewsMapper">
+
+    <select id="listOptions" resultType="com.kmbeast.pojo.vo.OptionsVO">
+        SELECT n.id    AS value,
+               n.title AS label
+        FROM news n
+    </select>
+
+    <select id="getIds" resultType="int">
+
+        SELECT n.id FROM news n
+    </select>
+
+    <select id="listPageCount" resultType="int">
+
+        SELECT COUNT(*)
+        FROM news n
+        <where>
+            <if test="id != null">
+                AND n.id = #{id}
+            </if>
+            <if test="isShow != null">
+                AND n.is_show = #{isShow}
+            </if>
+            <if test="newsTypeId != null">
+                AND n.news_type_id = #{newsTypeId}
+            </if>
+            <if test="title != null and title != ''">
+                AND n.title LIKE concat('%',#{title},'%')
+            </if>
+            <if test="ids != null and ids.size() > 0">
+                AND n.id IN
+                <foreach collection="ids" item="id" open="(" close=")" separator="," index="index">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getById" resultType="com.kmbeast.pojo.vo.NewsVO">
+
+        SELECT n.id,
+               n.title,
+               n.cover,
+               n.content,
+               n.summary,
+               n.is_show                                                                         AS isShow,
+               n.create_time                                                                     AS createTime,
+               n.news_type_id                                                                    AS newsTypeId,
+               (SELECT COUNT(*) FROM action_operation ao1 WHERE ao1.news_id = n.id AND type = 2) AS viewCount,
+               (SELECT COUNT(*) FROM action_operation ao2 WHERE ao2.news_id = n.id AND type = 3) AS collectionCount,
+               (SELECT COUNT(*) FROM action_operation ao3 WHERE ao3.news_id = n.id AND type = 1) AS upvoteCount
+        FROM news n
+        WHERE n.id = #{id}
+
+    </select>
+
+    <select id="list" resultType="com.kmbeast.pojo.vo.NewsListItemVO">
+
+        SELECT n.id,
+        n.title,
+        n.cover,
+        n.is_show AS isShow,
+        n.summary,
+        n.create_time AS createTime,
+        n.news_type_id AS newsTypeId,
+        (SELECT COUNT(*) FROM action_operation ao1 WHERE ao1.news_id = n.id AND type=2) AS viewCount,
+        (SELECT COUNT(*) FROM action_operation ao2 WHERE ao2.news_id = n.id AND type=3) AS collectionCount,
+        (SELECT COUNT(*) FROM action_operation ao3 WHERE ao3.news_id = n.id AND type=1) AS upvoteCount
+        FROM news n
+        <where>
+            <if test="id != null">
+                AND n.id = #{id}
+            </if>
+            <if test="isShow != null">
+                AND n.is_show = #{isShow}
+            </if>
+            <if test="newsTypeId != null">
+                AND n.news_type_id = #{newsTypeId}
+            </if>
+            <if test="title != null and title != ''">
+                AND n.title LIKE concat('%',#{title},'%')
+            </if>
+            <if test="ids != null and ids.size() > 0">
+                AND n.id IN
+                <foreach collection="ids" item="id" open="(" close=")" separator="," index="index">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        /*
+        1. 阅读量 -> viewCount
+        2. 收藏量 -> collectionCount
+        3. 点赞量 -> upvoteCount
+        4. 发布时间 -> createTime
+        5. 多重排序
+        */
+        ORDER BY
+        <choose>
+            <when test="sortField == 'viewCount'">viewCount DESC</when>
+            <when test="sortField == 'collectionCount'">collectionCount DESC</when>
+            <when test="sortField == 'upvoteCount'">upvoteCount DESC</when>
+            <when test="sortField == 'doubleSort'">viewCount DESC,collectionCount DESC,upvoteCount DESC</when>
+            <otherwise>createTime DESC</otherwise>
+        </choose>
+        <if test="current != null and size != null">
+            LIMIT #{current},#{size}
+        </if>
+
+    </select>
+
+</mapper>
