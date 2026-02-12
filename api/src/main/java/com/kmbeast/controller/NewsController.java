@@ -25,114 +25,100 @@ public class NewsController {
 
     /**
      * 新增
-     *
-     * @param news 实体数据
-     * @return Result<String>
      */
-    @PostMapping(value = "/saveEntity")
-    @ResponseBody
+    @PostMapping("/saveEntity")
     public Result<String> saveEntity(@RequestBody News news) {
         return newsService.saveEntity(news);
     }
 
     /**
      * 修改
-     *
-     * @param news 实体数据
-     * @return Result<String>
      */
-    @PutMapping(value = "/updateEntity")
-    @ResponseBody
+    @PutMapping("/updateEntity")
     public Result<String> updateEntity(@RequestBody News news) {
         return newsService.updateEntity(news);
     }
 
     /**
      * 删除
-     *
-     * @param id 新闻ID
-     * @return Result<String>
      */
-    @DeleteMapping(value = "/{id}")
-    @ResponseBody
-    public Result<String> updateEntity(@PathVariable Integer id) {
+    @DeleteMapping("/delete/{id}")
+    public Result<String> deleteEntity(@PathVariable Integer id) {
         return newsService.deleteByNewsId(id);
     }
 
     /**
      * 通过ID查询详情
-     *
-     * @param id 新闻ID
-     * @return Result<NewsVO> 响应结果
      */
-    @GetMapping(value = "/{id}")
-    @ResponseBody
+    @GetMapping("/{id}")
     public Result<NewsVO> getByNewsId(@PathVariable Integer id) {
         return newsService.getByNewsId(id);
     }
 
     /**
-     * 查询新闻列表数据
-     *
-     * @param newsQueryDto 查询参数
-     * @return Result<List < NewsListItemVO>> 响应结果
+     * 查询新闻列表
      */
     @Pager
-    @PostMapping(value = "/list")
-    @ResponseBody
+    @PostMapping("/list")
     public Result<List<NewsListItemVO>> list(@RequestBody NewsQueryDto newsQueryDto) {
         return newsService.list(newsQueryDto);
     }
 
     /**
      * 查询用户收藏的新闻信息
-     *
-     * @param newsQueryDto 查询参数
-     * @return Result<List < NewsListItemVO>> 响应结果
      */
     @Pager
-    @PostMapping(value = "/collectionList")
-    @ResponseBody
+    @PostMapping("/collectionList")
     public Result<List<NewsListItemVO>> collectionList(@RequestBody NewsQueryDto newsQueryDto) {
         return newsService.collectionList(newsQueryDto);
     }
 
     /**
      * 修改新闻的展出状态
-     *
-     * @param news 实体
-     * @return Result<String> 响应结果
      */
     @Pager
-    @PutMapping(value = "/setShowStatus")
-    @ResponseBody
+    @PutMapping("/setShowStatus")
     public Result<String> setShowStatus(@RequestBody News news) {
         return newsService.setShowStatus(news);
     }
 
     /**
      * 查询新闻类型数据
-     *
-     * @return Result<List < OptionsVO>> 响应结果
      */
-    @GetMapping(value = "/types")
-    @ResponseBody
+    @GetMapping("/types")
     public Result<List<OptionsVO>> types() {
         return newsService.types();
     }
 
-
     /**
      * 查询推荐的新闻
-     *
-     * @param count 查询的条数
-     * @return Result<List < NewsListItemVO>> 响应结果
      */
-    @GetMapping(value = "/recommend/{count}")
-    @ResponseBody
+    @GetMapping("/recommend/{count}")
     public Result<List<NewsListItemVO>> recommend(@PathVariable Integer count) {
         return newsService.recommend(count);
     }
 
-}
+    /**
+     * 获取最热新闻
+     */
+    @GetMapping("/hot")
+    public Result<List<NewsListItemVO>> getHotNews() {
+        return newsService.getHotNews();
+    }
 
+    /**
+     * 按分类获取新闻
+     */
+    @GetMapping("/category/{category}")
+    public Result<List<NewsListItemVO>> getNewsByCategory(@PathVariable String category) {
+        return newsService.getNewsByCategory(category);
+    }
+
+    /**
+     * 增加新闻阅读量
+     */
+    @PutMapping("/incrementReadCount/{id}")
+    public Result<String> incrementReadCount(@PathVariable Integer id) {
+        return newsService.incrementReadCount(id);
+    }
+}

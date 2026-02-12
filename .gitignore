@@ -1,0 +1,17 @@
+node_modules/
+view/node_modules/
+dist/
+view/dist/
+target/
+api/target/
+[200~.cache/
+view/node_modules/.cache/~
+.DS_Store
+Thumbs.db
+
+.idea/
+.vscode/
+*.swp
+*.swo
+*.log
+npm-debug.log*

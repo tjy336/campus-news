@@ -1,5 +1,6 @@
 package com.kmbeast.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kmbeast.context.LocalThreadHolder;
 import com.kmbeast.mapper.ActionOperationMapper;
@@ -123,6 +124,19 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         newsVO.setNewsTypeName(
                 NewsTypeEnum.getNameById(newsVO.getNewsTypeId())
         ); // 设置新闻类别名
+
+        // 增加阅读量
+        try {
+            News news = this.baseMapper.selectById(id);
+            if (news != null) {
+                news.setReadCount(news.getReadCount() == null ? 1 : news.getReadCount() + 1);
+                this.baseMapper.updateById(news);
+                newsVO.setReadCount(news.getReadCount());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return ApiResult.success(newsVO);
     }
 
@@ -259,5 +273,112 @@ public class NewsServiceImpl extends ServiceImpl<NewsMapper, News> implements Ne
         newsQueryDto.setIds(newsRecommendIds);
         List<NewsListItemVO> newsListItemVOS = this.baseMapper.list(newsQueryDto);
         return ApiResult.success(newsListItemVOS);
+    }
+
+    // ====================== 新增接口实现 ======================
+
+    /**
+     * 获取最热新闻（按阅读量排序）
+     *
+     * @return Result<List < NewsListItemVO>> 最热新闻列表
+     */
+    @Override
+    public Result<List<NewsListItemVO>> getHotNews() {
+        try {
+            QueryWrapper<News> wrapper = new QueryWrapper<>();
+            wrapper.orderByDesc("read_count")  // 按阅读量倒序
+                    .last("LIMIT 5");          // 取前5条
+            List<News> newsList = this.baseMapper.selectList(wrapper);
+
+            // 转换为VO
+            List<NewsListItemVO> voList = newsList.stream()
+                    .map(this::convertToNewsListItemVO)
+                    .collect(Collectors.toList());
+
+            return ApiResult.success(voList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResult.error("获取最热新闻失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 按分类获取新闻
+     *
+     * @param category 分类名称
+     * @return Result<List < NewsListItemVO>> 分类新闻列表
+     */
+    @Override
+    public Result<List<NewsListItemVO>> getNewsByCategory(String category) {
+        try {
+            QueryWrapper<News> wrapper = new QueryWrapper<>();
+            wrapper.eq("category", category)    // 按分类筛选
+                    .orderByDesc("create_time")  // 按时间倒序
+                    .last("LIMIT 10");           // 取前10条
+            List<News> newsList = this.baseMapper.selectList(wrapper);
+
+            // 转换为VO
+            List<NewsListItemVO> voList = newsList.stream()
+                    .map(this::convertToNewsListItemVO)
+                    .collect(Collectors.toList());
+
+            return ApiResult.success(voList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResult.error("获取分类新闻失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 增加新闻阅读量
+     *
+     * @param id 新闻ID
+     * @return Result<String> 操作结果
+     */
+    @Override
+    public Result<String> incrementReadCount(Integer id) {
+        try {
+            News news = this.baseMapper.selectById(id);
+            if (news == null) {
+                return ApiResult.error("新闻不存在");
+            }
+            news.setReadCount(news.getReadCount() == null ? 1 : news.getReadCount() + 1);
+            this.baseMapper.updateById(news);
+            return ApiResult.success("阅读量+1成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResult.error("增加阅读量失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 新闻实体转VO
+     *
+     * @param news 新闻实体
+     * @return NewsListItemVO
+     */
+    private NewsListItemVO convertToNewsListItemVO(News news) {
+        if (news == null) {
+            return null;
+        }
+        NewsListItemVO vo = new NewsListItemVO();
+        vo.setId(news.getId());
+        vo.setTitle(news.getTitle());
+        vo.setContent(news.getContent());
+        vo.setCover(news.getCover());
+        vo.setSummary(news.getSummary());
+        vo.setCreateTime(news.getCreateTime());
+        vo.setReadCount(news.getReadCount() == null ? 0 : news.getReadCount());
+        vo.setLikeCount(news.getLikeCount() == null ? 0 : news.getLikeCount());
+        vo.setNewsTypeId(news.getNewsTypeId());
+        // 设置新闻类型名称
+        if (news.getNewsTypeId() != null) {
+            vo.setNewsTypeName(NewsTypeEnum.getNameById(news.getNewsTypeId()));
+        }
+        // 设置分类（如果数据库有category字段）
+        // vo.setCategory(news.getCategory());
+        // 设置图片（如果有image字段）
+        // vo.setImage(news.getImage());
+        return vo;
     }
 }
